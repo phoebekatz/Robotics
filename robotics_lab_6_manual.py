@@ -14,7 +14,7 @@ Original file is located at
 from interbotix_xs_modules.arm import InterbotixManipulatorXS
 import math
 import numpy as np
-import sympy as sym
+
 import sys
 
 def main():
@@ -28,8 +28,8 @@ def main():
 
   ####READ IN
     if len(sys.argv) > 1:
-      pick_location = int(sys.argv[0])
-      place_location = int(sys.argv[1])
+      pick_location = int(sys.argv[1])
+      place_location = int(sys.argv[2])
     else:
       print("Please provide pick and place location numbers between 1 and 4.")
 
