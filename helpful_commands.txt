@@ -7,3 +7,9 @@ enable / disable motors (switch out false for true):
 rosservice call /px100/torque)enable "cmd_type: 'group'
 name: 'arm
 enable: false"
+
+see current position:
+rostopic echo /px100/joint_states
+
+
+
