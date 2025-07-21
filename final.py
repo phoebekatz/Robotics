@@ -24,32 +24,32 @@ def main():
 	################### Variables ##################################
 	bot = InterbotixManipulatorXS("px100", "arm", "gripper")
 
-  xPositions = {1:102.5, 2:138.5, 3:174.5, 4:210.5} # dictionary w X coordinates
+	xPositions = {1:102.5, 2:138.5, 3:174.5, 4:210.5} # dictionary w X coordinates
 	zFinal = 40 # mm . MIGHT NEED TO CHANGE
-	yFinal = 18 # mm. FOR LAB 6
-  #yPositions{'a': -126,'b': -90, 'c': -54, 'd': -18, 'e': 18, 'f': 54 , 'g': 90, 'h': 126 } #for final
+	#yFinal = 18 # mm. FOR LAB 6
+	yPositions={'a': -126,'b': -90, 'c': -54, 'd': -18, 'e': 18, 'f': 54 , 'g': 90, 'h': 126 } #for final
 
 	##### READ in
 	#if len(sys.argv) > 1:
 	pick_locationX = int(sys.argv[1])
-  pick_locationY = sys.argv[2]
+	pick_locationY = sys.argv[2]
 
-  place_locationX = int(sys.argv[3])
-  place_locationY = sys.argv[4]
+	place_locationX = int(sys.argv[3])
+	place_locationY = sys.argv[4]
 
 	#else:
 	 # print("Please provide pick and place location numbers between 1 and 4.")
 
 	#translate pick and place locations into coordinates
 	xFinalPick = xPositions[pick_locationX] # mm
-  yFinalPick = yPositions[pick_locationY]
-  pickAngles = invKinematics(xFinalPick, yFinalPick, zFinalPick)
+	yFinalPick = yPositions[pick_locationY]
+	pickAngles = invKinematics(xFinalPick, yFinalPick, zFinal)
+	
+	xFinalPlace = xPositions[place_locationX] # mm
+	yFinalPlace = yPositions[place_locationY]
+	placeAngles = invKinematics(xFinalPlace,yFinalPlace,zFinal)
 
-  xFinalPlace = xPositions[place_locationX] # mm
-  yFinalPlace = yPositions[place_locationY]
-  placeAngles = invKinematics(xFinalPlace,yFinalPlace,zFinalPlace)
-
-	time.sleep(100) # 100 s
+	time.sleep(1) # 100 s
 
 	#### move robot to pick up location / pick up
 	bot.arm.set_single_joint_position("waist", pickAngles[0]) #waist
@@ -62,7 +62,7 @@ def main():
   # move gripper straight up
 
 	#### move robot to drop off location / drop off
-  bot.arm.set_single_joint_position("waist", placeAngles[0]) #waist
+	bot.arm.set_single_joint_position("waist", placeAngles[0]) #waist
 	bot.arm.set_single_joint_position("shoulder", placeAngles[1]) #shoulder
 	bot.gripper.open()
 	bot.arm.set_single_joint_position("wrist_angle", placeAngles[3])
@@ -75,12 +75,11 @@ def main():
 	bot.arm.set_single_joint_position("elbow", 1.5)
 	bot.arm.set_single_joint_position("wrist_angle", 0.8)
 
-if __name__=='__main__':
-    	main()
+
 
 def invKinematics(xFinal, yFinal,zFinal):
 	endEffector = math.radians(90) # must be vertical
-  angleOffset = math.radians(90)
+	angleOffset = math.radians(90)
 
 	elbowToWrist = 100 # mm
 	shoulderToElbow = 100 # mm
@@ -88,27 +87,27 @@ def invKinematics(xFinal, yFinal,zFinal):
 
 	shoulderHyp = math.sqrt(shoulderToElbow**2 + shoulderOffset**2)
 
-  elbowIK = math.acos(((xFinal**2)+(zFinal**2)-(elbowToWrist**2)-(shoulderHyp**2)) / (2*shoulderHyp*elbowToWrist))
+	elbowIK = math.acos(((xFinal**2)+(zFinal**2)-(elbowToWrist**2)-(shoulderHyp**2)) / (2*shoulderHyp*elbowToWrist))
 
 	shoulderIKprime1 = math.atan(zFinal/xFinal)-math.atan((elbowToWrist*math.sin(elbowIK))/	(shoulderHyp+elbowToWrist*(math.cos(elbowIK) ) ) ) # w hypotenuse
 	alpha = math.atan(shoulderOffset/shoulderToElbow) # accounting for offset
 	shoulderIK1 = shoulderIKprime1 + alpha  #accounting for offset
-
-  shoulderIKprime2 = math.atan(zFinal/xFinal)-math.atan((elbowToWrist*math.sin(-elbowIK))/	(shoulderHyp+elbowToWrist*(math.cos(-elbowIK) ) ) ) # w hypotenuse
+	
+	shoulderIKprime2 = math.atan(zFinal/xFinal)-math.atan((elbowToWrist*math.sin(-elbowIK))/	(shoulderHyp+elbowToWrist*(math.cos(-elbowIK) ) ) ) # w hypotenuse
 	shoulderIK2 = shoulderIKprime2 + alpha  #accounting for offset
 
 	#### pick solution where shoulder angle is greatest
-  if (shoulderIK1 => shoulderIK2) :
-    shoulder = -(shoulderIK1- np.pi/2.0)
-  elif (shoulderIK2 > shoulderIK1):
-    shoulder = -(shoulderIK2- angleOffset)
-  else:
-    shoulder = 0.0
-    print("Error in calculating shoulder angle.")
+	if (shoulderIK1 >= shoulderIK2) :
+		shoulder = -(shoulderIK1- np.pi/2.0)
+	elif (shoulderIK2 > shoulderIK1):
+		shoulder = -(shoulderIK2- angleOffset)
+	else:
+		shoulder = 0.0
+		print("Error in calculating shoulder angle.")
 
   #### translate coordinate systems
-  shoulder = -(shoulderIK - angleOFfset)
-  elbow = -(elbowIK + angleOffset)
+	shoulder = -(shoulder - angleOffset)
+	elbow = -(elbowIK + angleOffset)
 
 	wrist = endEffector - elbow - shoulder # bc total will always be vertical
 
@@ -120,4 +119,7 @@ def invKinematics(xFinal, yFinal,zFinal):
 	print("Wrist angle: {}".format(wrist))
 
 
-  return [waist, shoulder, elbow, wrist]
+	return [waist, shoulder, elbow, wrist]
+
+if __name__=='__main__':
+    	main()
